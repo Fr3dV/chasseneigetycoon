@@ -106,6 +106,7 @@ kbd{font-family:inherit;font-size:11px;font-weight:700;border:1px solid currentC
 
 #touch{display:none}
 body.touch #touch{display:block}
+body.gamzu-manette #touch{display:none}
 body.touch #toasts{bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 .tgroup{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;gap:12px}
 .tgroup.l{left:calc(16px + env(safe-area-inset-left,0px))}
@@ -241,11 +242,12 @@ body.touch #toasts{bottom:calc(120px + env(safe-area-inset-bottom,0px))}
       <div style="display:flex;align-items:center;gap:14px"><span id="gMoney">0 €</span><button id="btnClose" class="closeBtn">Fermer</button></div>
     </div>
     <div id="cards"></div>
-    <div class="sheetFoot"><span id="gStats"></span><button id="btnReset" class="ghost" style="margin:0">Recommencer la partie</button></div>
+    <div class="sheetFoot"><span id="gStats"></span><button id="btnReset" data-pad="non" class="ghost" style="margin:0">Recommencer la partie</button></div>
   </div>
 </div>
 
 <script src="vendor/three.min.js"></script>
+<script src="https://gamzu.fr/gamzu-pad.js"></script>
 <script>
 (function(){
 'use strict';
@@ -1168,7 +1170,7 @@ function cabEye(m){if(CAB_EYE[m.kind])return CAB_EYE[m.kind];const L=(m.kind==='
 let cabRoll=0,lastFov=60,dispT=0;
 function cabCam(dt,m,S){const e=cabEye(m),s=Math.sin(player.h),c=Math.cos(player.h);
  camera.position.set(player.x+e[0]*S*c+e[2]*S*s,e[1]*S,player.z-e[0]*S*s+e[2]*S*c);
- const st=(keys.left?1:0)-(keys.right?1:0);cabRoll+=(-st*0.025*Math.min(1,Math.abs(player.v)/5)-cabRoll)*Math.min(1,dt*4);
+ const st=steerCur;cabRoll+=(-st*0.025*Math.min(1,Math.abs(player.v)/5)-cabRoll)*Math.min(1,dt*4);
  camera.position.y+=Math.sin(performance.now()*0.018)*0.012*Math.min(1,Math.abs(player.v)/6);
  if(shake>0.002){const a=shake*0.35;camera.position.x+=(Math.random()-0.5)*a;camera.position.y+=(Math.random()-0.5)*a;camera.position.z+=(Math.random()-0.5)*a;shake*=Math.max(0,1-dt*6);}
  camera.rotation.set(-0.13,player.h+Math.PI,cabRoll,'YXZ');}
@@ -1184,7 +1186,7 @@ function updateCockpit(dt,m){const cab=camMode===2,o=player.obj;cockpit.visible=
  if(!cab)return;
  const bars=m.kind==='mini'||m.kind==='quad';ckCab.visible=!bars;ckBars.visible=bars;
  const hw=Math.tan(fov*Math.PI/360)*camera.aspect;for(const pl of pillars){pl.p.position.x=pl.sd*hw*0.95;pl.p.rotation.z=pl.sd*0.2;}
- const st=(keys.left?1:0)-(keys.right?1:0);wheelSpin.rotation.z+=(st*1.6-wheelSpin.rotation.z)*Math.min(1,dt*6);
+ const st=steerCur;wheelSpin.rotation.z+=(st*1.6-wheelSpin.rotation.z)*Math.min(1,dt*6);
  fresh.rotation.z+=(st*0.5*Math.min(1,Math.abs(player.v)/6)-fresh.rotation.z)*Math.min(1,dt*3)+Math.sin(performance.now()*0.004)*0.004;
  const snowing=W().snow>0.3,tt=performance.now()*0.0035;for(const wp of wipers)wp.rotation.z=snowing?0.1+0.7*(1-Math.cos(tt*2)):0.08;
  dispT+=dt;if(dispT>0.2){dispT=0;drawDisplay();}}
@@ -1374,6 +1376,7 @@ function smash(p,vx,vy,vz,str,again){
  p.vx=vx;p.vy=vy;p.vz=vz;const f=Math.hypot(vx,vz)/10;
  p.avx=(Math.random()-0.5)*8*(1+f);p.avy=(Math.random()-0.5)*6;p.avz=(Math.random()-0.5)*8*(1+f);
  p.state='flying';p.g.scale.setScalar(1);
+ if(PAD)PAD.vibrer(90+p.t.mass*40,Math.min(1,0.25+p.t.mass*0.15));
  const y=p.y,cols=p.t.debris||[0xffffff];
  burst(p.x,y,p.z,24+Math.round(p.t.mass*8),7+p.t.mass*1.5);
  const nd=p.t.breakTo?0:Math.round(6+p.t.mass*4);
@@ -1476,6 +1479,7 @@ function toast(text,cls,ms){const t=document.createElement('div');t.className='t
  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),450);},ms||2600);}
 let paused=true,camMode=0,zoom=1;
 const keys={fwd:false,back:false,left:false,right:false};
+let steerCur=0;
 const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 window.addEventListener('keydown',e=>{
  if(KEYMAP[e.code]){keys[KEYMAP[e.code]]=true;e.preventDefault();}
@@ -1503,10 +1507,19 @@ window.addEventListener('pointerdown',()=>{if(started)initAudio();});
 $('btnGarage').addEventListener('click',()=>toggleGarage());
 $('btnClose').addEventListener('click',()=>toggleGarage(false));
 $('garage').addEventListener('click',e=>{if(e.target.id==='garage')toggleGarage(false);});
+/* ---------- Manette (gamzu.fr/gamzu-pad.js, optionnel) ---------- */
+const PAD=window.GamzuPad||null;
+if(PAD)PAD.init({
+ touches:{Y:'KeyG',START:'KeyG',X:'KeyC',LB:'KeyV',SELECT:'KeyM'},
+ toujours:['Y'],
+ menu:()=>!$('start').classList.contains('hidden')?$('start'):!$('garage').classList.contains('hidden')?$('garage'):null,
+ retour:()=>{if(!$('garage').classList.contains('hidden'))toggleGarage(false);},
+ aide:'RT avancer · LT freiner · stick gauche diriger · stick droit zoom<br>Y garage · X vue · LB cabine · Select son'
+});
 function updatePause(){paused=!$('start').classList.contains('hidden')||!$('garage').classList.contains('hidden');}
 function toggleGarage(force){const g=$('garage');const show=force===undefined?g.classList.contains('hidden'):force;
  if(show){renderGarage();g.classList.remove('hidden');}else g.classList.add('hidden');
- for(const k in keys)keys[k]=false;updatePause();}
+ for(const k in keys)keys[k]=false;steerCur=0;updatePause();}
 
 const LOGP=Math.log(100);
 function renderGarage(){
@@ -1595,9 +1608,15 @@ function update(dt,t){
  // chute de neige
  snowAcc+=dt;if(snowAcc>=0.25){const r=w.rate*snowAcc;for(let k=0;k<NC;k++){if(clearT[k]>0){clearT[k]-=snowAcc;continue;}const d=depth[k]+r*varm[k];depth[k]=d>1?1:d;writeCell(k);}snowAcc=0;snowDirty=true;}
  // conduite
- const input=(keys.fwd?1:0)-(keys.back?1:0),steer=(keys.left?1:0)-(keys.right?1:0);
+ let input=(keys.fwd?1:0)-(keys.back?1:0),steer=(keys.left?1:0)-(keys.right?1:0);
+ const pa=PAD&&PAD.actif?PAD.axes:null;
+ if(pa){// manette : gâchettes (ou stick gauche vertical) pour avancer et freiner, stick gauche pour tourner
+  const sy=Math.abs(pa.ly)>0.35?-pa.ly:0;
+  input=clamp(input+pa.rt-pa.lt+sy,-1,1);steer=clamp(steer-pa.lx,-1,1);
+  if(pa.ry)zoom=clamp(zoom*(1+pa.ry*dt*1.4),0.55,2.2);}
+ steerCur=steer;
  const maxV=m.speed*player.drag;
- if(input>0)player.v+=m.speed*1.3*dt;else if(input<0)player.v-=m.speed*1.6*dt;else{player.v*=Math.max(0,1-2.5*dt);if(Math.abs(player.v)<0.05)player.v=0;}
+ if(input>0.05)player.v+=m.speed*1.3*dt*input;else if(input<-0.05)player.v+=m.speed*1.6*dt*input;else{player.v*=Math.max(0,1-2.5*dt);if(Math.abs(player.v)<0.05)player.v=0;}
  if(player.v>maxV)player.v=Math.max(maxV,player.v-m.speed*3*dt);
  player.v=Math.max(player.v,-m.speed*0.45);
  const sk=clamp(player.v/(m.speed*0.35),-1,1);

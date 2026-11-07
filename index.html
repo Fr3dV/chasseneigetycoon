@@ -1513,11 +1513,11 @@ $('garage').addEventListener('click',e=>{if(e.target.id==='garage')toggleGarage(
 /* ---------- Manette (gamzu.fr/gamzu-pad.js, optionnel) ---------- */
 const PAD=window.GamzuPad||null;
 if(PAD)PAD.init({
- touches:{Y:'KeyG',START:'KeyG',X:'KeyC',LB:'KeyV',SELECT:'KeyM'},
+ touches:{Y:'KeyG',START:'KeyG',X:'KeyC',LB:'KeyV',BAS:'KeyM'}, // Select reste libre : appui long = menu gamzu.fr
  toujours:['Y'],
  menu:()=>!$('start').classList.contains('hidden')?$('start'):!$('garage').classList.contains('hidden')?$('garage'):null,
  retour:()=>{if(!$('garage').classList.contains('hidden'))toggleGarage(false);},
- aide:'RT avancer · LT freiner · stick gauche diriger · stick droit zoom<br>Y garage · X vue · LB cabine · Select son'
+ aide:'RT avancer · LT freiner · stick gauche diriger · stick droit zoom<br>Y garage · X vue · LB cabine · croix bas son · Select maintenu : menu gamzu.fr'
 });
 function updatePause(){paused=!$('start').classList.contains('hidden')||!$('garage').classList.contains('hidden');}
 function toggleGarage(force){const g=$('garage');const show=force===undefined?g.classList.contains('hidden'):force;

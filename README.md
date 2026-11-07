@@ -39,6 +39,7 @@ Recommandations :
 ## Dépendances externes restantes
 
 - Polices Google Fonts (Barlow, Barlow Condensed). Sans réseau, le jeu bascule sur les polices système, sans autre effet.
+- Classement partagé de gamzu.fr (`https://gamzu.fr/scores.js`) : le total d’euros gagnés est envoyé après chaque mission réussie et toutes les 5 minutes de jeu, si le joueur a choisi un pseudo. Le top 10 s’affiche à l’accueil et au garage. Sans réseau, le jeu marche normalement.
 
 ## Sauvegarde
 

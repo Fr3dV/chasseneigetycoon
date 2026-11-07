@@ -30,4 +30,5 @@ Hébergement statique, `index.html` à la racine, `vendor/` à côté. Vérifier
 - `updatePile`, `dropPile` : bourrelet de neige devant la lame.
 - `updateTracks` : traces de pneus, chenilles et pas.
 - `updateProps`, `smash` : objets à casser et combos.
+- `gzEnvoi`, `gzPanneau` : classement gamzu.fr (score = `state.earned`).
 - `cabCam`, `updateCockpit` : vue cabine.

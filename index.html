@@ -582,8 +582,8 @@ const CSN=900,csPos=new Float32Array(CSN*3),csVel=new Float32Array(CSN*3),csLife
 for(let i=0;i<CSN;i++)csPos[i*3+1]=-50;
 const csGeo=new THREE.BufferGeometry();csGeo.setAttribute('position',new THREE.BufferAttribute(csPos,3));
 const chimSmoke=new THREE.Points(csGeo,new THREE.PointsMaterial({size:2.4,map:HT.puff,color:0xd5dbe3,transparent:true,opacity:0.32,depthWrite:false}));chimSmoke.frustumCulled=false;scene.add(chimSmoke);
-function updateChimneys(dt){const wd=W().wind;
- for(const p of chimneyTops){if(Math.random()>dt*3)continue;const i=csHead;csHead=(csHead+1)%CSN;csPos[i*3]=p.x;csPos[i*3+1]=p.y;csPos[i*3+2]=p.z;csVel[i*3]=wd*0.35+(Math.random()-0.5)*0.4;csVel[i*3+1]=1.1+Math.random()*0.6;csVel[i*3+2]=(Math.random()-0.5)*0.4;csLife[i]=3.2;}
+function updateChimneys(dt){
+ for(const p of chimneyTops){if(Math.random()>dt*3)continue;const i=csHead;csHead=(csHead+1)%CSN;csPos[i*3]=p.x;csPos[i*3+1]=p.y;csPos[i*3+2]=p.z;csVel[i*3]=windX*0.35+(Math.random()-0.5)*0.4;csVel[i*3+1]=1.1+Math.random()*0.6;csVel[i*3+2]=windZ*0.35+(Math.random()-0.5)*0.4;csLife[i]=3.2;}
  for(let i=0;i<CSN;i++){if(csLife[i]<=0)continue;csLife[i]-=dt;csPos[i*3]+=csVel[i*3]*dt;csPos[i*3+1]+=csVel[i*3+1]*dt;csPos[i*3+2]+=csVel[i*3+2]*dt;if(csLife[i]<=0)csPos[i*3+1]=-50;}
  csGeo.attributes.position.needsUpdate=true;}
 function label(text,x,y,z){
@@ -1039,10 +1039,10 @@ for(let i=0;i<SMN;i++)smPos[i*3+1]=-50;
 const smGeo=new THREE.BufferGeometry();smGeo.setAttribute('position',new THREE.BufferAttribute(smPos,3));
 const smoke=new THREE.Points(smGeo,new THREE.PointsMaterial({size:1.4,map:TEX_GLOW,color:0x5a6068,transparent:true,opacity:0.35,depthWrite:false}));smoke.frustumCulled=false;scene.add(smoke);
 function updateSmoke(dt,m,o){smT+=dt;const s=Math.sin(player.h),c=Math.cos(player.h);
- if(smT>0.06){smT=0;const rate=0.3+Math.abs(player.v)/m.speed;
+ if(smT>0.06){smT=0;const rate=0.25+0.45*Math.abs(player.v)/m.speed+0.5*engLoad;
   for(const e of o.exhaust){if(Math.random()>rate)continue;const lx=e[0]*m.size,lz=e[2]*m.size,i=smHead;smHead=(smHead+1)%SMN;
    smPos[i*3]=player.x+lx*c+lz*s;smPos[i*3+1]=e[1]*m.size;smPos[i*3+2]=player.z-lx*s+lz*c;
-   smVel[i*3]=(Math.random()-0.5)*0.6+W().wind*0.3;smVel[i*3+1]=1.6+Math.random();smVel[i*3+2]=(Math.random()-0.5)*0.6;smLife[i]=1.8;}}
+   smVel[i*3]=(Math.random()-0.5)*0.6+windX*0.3;smVel[i*3+1]=1.6+Math.random()+engLoad*1.2;smVel[i*3+2]=(Math.random()-0.5)*0.6+windZ*0.3;smLife[i]=1.8;}}
  for(let i=0;i<SMN;i++){if(smLife[i]<=0)continue;smLife[i]-=dt;smPos[i*3]+=smVel[i*3]*dt;smPos[i*3+1]+=smVel[i*3+1]*dt;smPos[i*3+2]+=smVel[i*3+2]*dt;if(smLife[i]<=0)smPos[i*3+1]=-50;}
  smGeo.attributes.position.needsUpdate=true;}
 
@@ -1176,7 +1176,7 @@ function cabCam(dt,m,S){const e=cabEye(m),s=Math.sin(player.h),c=Math.cos(player
  const st=steerCur;cabRoll+=(-st*0.025*Math.min(1,Math.abs(player.v)/5)-cabRoll)*Math.min(1,dt*4);
  camera.position.y+=Math.sin(performance.now()*0.018)*0.012*Math.min(1,Math.abs(player.v)/6);
  if(shake>0.002){const a=shake*0.35;camera.position.x+=(Math.random()-0.5)*a;camera.position.y+=(Math.random()-0.5)*a;camera.position.z+=(Math.random()-0.5)*a;shake*=Math.max(0,1-dt*6);}
- camera.rotation.set(-0.13,player.h+Math.PI,cabRoll,'YXZ');}
+ camera.rotation.set(-0.13-bodyP*0.6,player.h+Math.PI,cabRoll-bodyR*0.5,'YXZ');}
 function drawDisplay(){const c=dispCtx;c.fillStyle='#0b1a2a';c.fillRect(0,0,256,96);c.strokeStyle='#2f74c0';c.lineWidth=3;c.strokeRect(2,2,252,92);
  c.textAlign='left';c.fillStyle='#9fe3ff';c.font='700 44px "Barlow Condensed","Arial Narrow",sans-serif';c.fillText(Math.round(Math.abs(player.v)*3.6)+' km/h',14,50);
  c.font='600 18px "Barlow Condensed","Arial Narrow",sans-serif';c.fillStyle='#cfe8ff';c.fillText('Neige devant la lame',14,82);
@@ -1197,16 +1197,21 @@ function toggleCab(){camMode=camMode===2?0:2;toast(camMode===2?'🪟 Vue depuis 
 function cycleCam(){camMode=(camMode+1)%3;toast(['🎥 Vue de poursuite','🛰️ Vue aérienne','🪟 Vue depuis la cabine'][camMode],'',1600);}
 
 /* ---------- Joueur ---------- */
-const player={x:cx(35),z:cx(35),h:0,v:0,drag:1,R:1,obj:null};
+const player={x:cx(35),z:cx(35),h:0,mh:0,v:0,drag:1,R:1,obj:null};
+/* état de conduite partagé : charge moteur, freinage, glisse, raclement de lame, suspension de la caisse */
+let engLoad=0,braking=false,slipAmt=0,scrLvl=0,beepT=0;
+let bodyP=0,bodyPV=0,bodyR=0,bodyRV=0,bodyD=0,lastV=0,lastH=0;
+const bbox=new THREE.Box3();
 function fits(x,z,h){const r=player.R,l=r*1.35,s=Math.sin(h),c=Math.cos(h);
  const pts=[[0,0],[r,l],[-r,l],[r,-l],[-r,-l],[r,0],[-r,0]];
  for(const p of pts){const wx=x+p[0]*c+p[1]*s,wz=z-p[0]*s+p[1]*c;if(!isRoad(toC(wx),toC(wz)))return false;}return true;}
 function okMove(nx,nz,h){if(fits(nx,nz,h))return true;return !fits(player.x,player.z,player.h)&&isRoad(toC(nx),toC(nz));}
 function equip(i){
  if(player.obj)scene.remove(player.obj.g);
- const m=MACHINES[i];const o=buildMachine(m);o.g.scale.setScalar(m.size);scene.add(o.g);
+ const m=MACHINES[i];const o=buildMachine(m);o.g.scale.setScalar(m.size);o.g.rotation.order='YXZ';o.topY=bbox.setFromObject(o.g).max.y;scene.add(o.g);
  player.obj=o;state.eq=i;player.R=Math.min(2.6,m.size*1.15);
  if(!fits(player.x,player.z,player.h)){player.x=cx(35);player.z=cx(35);player.h=0;player.v=0;}
+ player.mh=player.h;lastH=player.h;lastV=player.v;bodyP=bodyPV=bodyR=bodyRV=0;
  $('machineName').textContent=m.icon+' '+m.name;
 }
 
@@ -1227,14 +1232,21 @@ function spawn(x,y,z,vx,vy,vz){const i=spHead;spHead=(spHead+1)%SPN;spPos[i*3]=x
 function burst(x,y,z,n,pw){for(let k=0;k<n;k++)spawn(x+(Math.random()-0.5),y+Math.random(),z+(Math.random()-0.5),(Math.random()-0.5)*pw*2,Math.random()*pw*1.4,(Math.random()-0.5)*pw*2);}
 
 /* ---------- Sons (générés, sans fichier) ---------- */
-let actx=null,master=null,noiseBuf=null,plowG=null,plowF=null,engO=null,engG=null,plowLvl=0;
+let actx=null,master=null,noiseBuf=null,plowG=null,plowF=null,engO=null,engO2=null,engLfo=null,engF=null,engG=null,windG=null,windF=null,scrG=null,plowLvl=0;
 function initAudio(){
  if(actx){if(actx.state==='suspended')actx.resume();return;}
  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;actx=new AC();
   master=actx.createGain();master.gain.value=state.muted?0:0.55;master.connect(actx.destination);
   noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
   const src=actx.createBufferSource();src.buffer=noiseBuf;src.loop=true;plowF=actx.createBiquadFilter();plowF.type='lowpass';plowF.frequency.value=700;plowG=actx.createGain();plowG.gain.value=0;src.connect(plowF);plowF.connect(plowG);plowG.connect(master);src.start();
-  engO=actx.createOscillator();engO.type='sawtooth';engO.frequency.value=45;const ef=actx.createBiquadFilter();ef.type='lowpass';ef.frequency.value=260;engG=actx.createGain();engG.gain.value=0;engO.connect(ef);ef.connect(engG);engG.connect(master);engO.start();
+  // moteur diesel : dent de scie + sous-harmonique carrée, filtre qui s'ouvre avec le régime, battement lent des cylindres
+  engO=actx.createOscillator();engO.type='sawtooth';engO.frequency.value=45;const ef=actx.createBiquadFilter();ef.type='lowpass';ef.frequency.value=260;engF=ef;engG=actx.createGain();engG.gain.value=0;
+  engO2=actx.createOscillator();engO2.type='square';engO2.frequency.value=22.5;const eg2=actx.createGain();eg2.gain.value=0.45;engO2.connect(eg2);eg2.connect(ef);
+  const am=actx.createGain();am.gain.value=1;engLfo=actx.createOscillator();engLfo.type='sine';engLfo.frequency.value=11;const lg=actx.createGain();lg.gain.value=0.3;engLfo.connect(lg);lg.connect(am.gain);
+  engO.connect(ef);ef.connect(am);am.connect(engG);engG.connect(master);engO.start();engO2.start();engLfo.start();
+  // vent (souffle filtré, rafales) et raclement de la lame sur le bitume
+  const ws=actx.createBufferSource();ws.buffer=noiseBuf;ws.loop=true;windF=actx.createBiquadFilter();windF.type='bandpass';windF.frequency.value=380;windF.Q.value=0.8;windG=actx.createGain();windG.gain.value=0;ws.connect(windF);windF.connect(windG);windG.connect(master);ws.start(0,0.7);
+  const ss=actx.createBufferSource();ss.buffer=noiseBuf;ss.loop=true;const sf=actx.createBiquadFilter();sf.type='bandpass';sf.frequency.value=2700;sf.Q.value=1.6;scrG=actx.createGain();scrG.gain.value=0;ss.connect(sf);sf.connect(scrG);scrG.connect(master);ss.start(0,1.3);
  }catch(e){actx=null;}
 }
 function sfxThump(str){if(!actx)return;const t=actx.currentTime;const o=actx.createOscillator();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(32,t+0.32);const g=actx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,0.8*str),t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.42);o.connect(g);g.connect(master);o.start(t);o.stop(t+0.45);}
@@ -1244,8 +1256,17 @@ function sfxCrash(str){if(!actx)return;const t=actx.currentTime;
  n.connect(f);f.connect(g);g.connect(master);n.start(t,Math.random());n.stop(t+0.9);sfxThump(str);}
 function sfxAlarm(){if(!actx)return;const t=actx.currentTime;const o=actx.createOscillator();o.type='square';const g=actx.createGain();g.gain.value=0;o.connect(g);g.connect(master);
  for(let k=0;k<6;k++){o.frequency.setValueAtTime(k%2?700:950,t+k*0.22);g.gain.setValueAtTime(0.06,t+k*0.22);g.gain.setValueAtTime(0.0001,t+k*0.22+0.17);}o.start(t);o.stop(t+1.4);}
-function audioUpdate(m){if(!actx)return;const t=actx.currentTime,sp=Math.abs(player.v)/m.speed;
- engO.frequency.setTargetAtTime((40+sp*60)/Math.sqrt(m.size),t,0.1);engG.gain.setTargetAtTime(paused?0:0.045+sp*0.05,t,0.2);
+function sfxBeep(){if(!actx)return;const t=actx.currentTime,o=actx.createOscillator();o.type='square';o.frequency.value=1150;const f=actx.createBiquadFilter();f.type='lowpass';f.frequency.value=2400;const g=actx.createGain();
+ g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.04,t+0.012);g.gain.setValueAtTime(0.04,t+0.3);g.gain.linearRampToValueAtTime(0.0001,t+0.33);o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+0.36);}
+function audioUpdate(m){if(!actx||!engO2)return;const t=actx.currentTime,sp=Math.abs(player.v)/m.speed;
+ // régime : suit la vitesse et l'accélérateur ; sous forte charge (neige lourde) le moteur peine et gronde plus fort
+ const rpm=clamp(0.74*sp+0.3*engLoad,0,1.1),f=(38+rpm*62)/Math.sqrt(m.size)*(1-0.07*engLoad*(1-player.drag)*3);
+ engO.frequency.setTargetAtTime(f,t,0.12);engO2.frequency.setTargetAtTime(f*0.5,t,0.12);engLfo.frequency.setTargetAtTime(Math.max(7,f*0.25),t,0.15);
+ engF.frequency.setTargetAtTime(200+rpm*240+engLoad*170,t,0.15);
+ engG.gain.setTargetAtTime(paused?0:0.04+sp*0.035+engLoad*0.035,t,0.2);
+ const wn=clamp(windSm/13,0,1),cabK=camMode===2?0.55:1;
+ windG.gain.setTargetAtTime(paused?0:(0.01+0.15*wn)*gust*cabK,t,0.4);windF.frequency.setTargetAtTime(300+260*wn*gust,t,0.5);
+ scrG.gain.setTargetAtTime(paused?0:scrLvl*0.045*cabK,t,0.08);
  plowG.gain.setTargetAtTime(paused?0:Math.min(0.32,plowLvl*0.5),t,0.08);plowF.frequency.setTargetAtTime(450+plowLvl*1400,t,0.1);}
 function applyMuteUI(){const b=$('btnSound');if(b)b.innerHTML=(state.muted?'Son coupé':'Son')+'<kbd>M</kbd>';if(master)master.gain.value=state.muted?0:0.55;}
 function toggleMute(){state.muted=!state.muted;initAudio();applyMuteUI();save();}
@@ -1285,7 +1306,7 @@ function emitChunks(m,o,got){const n=Math.min(6,Math.floor(got*2.5+Math.random()
   if(sp.type==='chute'){const lx=sp.x*S,lz=sp.z*S;const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(7+Math.random()*6)*Math.sqrt(S);
    poolSpawn(chunks,x,sp.y*S,z,c*k+(Math.random()-0.5)*3,8+Math.random()*6,-s*k+(Math.random()-0.5)*3,sz,sz,sz,4);}
   else{const sd=sp.type==='side'?sp.sides[q%sp.sides.length]:(Math.random()<0.5?-1:1);const lx=sd*(m.width/2)*(sp.type==='jet'?Math.random():1),lz=o.frontZ*S;
-   const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(3+Math.random()*5)*Math.sqrt(S),fk=player.v*(sp.type==='jet'?1.2:0.5);
+   const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(3+Math.random()*5)*Math.sqrt(S)*(sp.type==='jet'?1:0.55+0.7*clamp(player.v/m.speed,0,1)),fk=player.v*(sp.type==='jet'?1.2:0.5);
    poolSpawn(chunks,x,0.5*S,z,c*sd*k+s*fk,3+Math.random()*4*Math.sqrt(S),-s*sd*k+c*fk,sz,sz*0.8,sz,4);}}}
 
 /* ---------- Effets écran ---------- */
@@ -1474,6 +1495,44 @@ function setWeather(i,silent){
  if(!silent)toast(w.icon+' '+w.name+(w.bonus>1?' : la mairie paie ×'+fnum(w.bonus):''),'',3000);
  wTimer=35+Math.random()*30;
 }
+/* vent : la force suit la météo, la direction tourne lentement, les rafales modulent flocons, fumées, gerbes et souffle */
+let windX=1.5,windZ=0,gust=1,windSm=1.5,snowAmt=0.4,snowPX=player.x,snowPZ=player.z;
+function updateWind(dt,t){windSm+=(W().wind-windSm)*Math.min(1,dt*0.5);
+ const a=0.5*Math.sin(t*0.021)+0.3*Math.sin(t*0.047+1.3);
+ gust=1+(0.28*Math.sin(t*0.63)+0.2*Math.sin(t*1.57+2)+0.12*Math.sin(t*3.1+0.7))*Math.min(1,windSm/6);
+ windX=Math.cos(a)*windSm*gust;windZ=Math.sin(a)*windSm*gust;}
+/* cycle jour / nuit (DAY_LEN secondes de jeu) : crépuscule, nuit claire, aube. Non sauvegardé : chaque session démarre de jour. */
+const DAY_LEN=480;
+let tod=0.1,night=0,gloomS=0,wasNight=false,lampsOn=false;
+const sstep=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x);};
+const NIGHT_SKY=new THREE.Color(0x18233a),DUSK_SKY=new THREE.Color(0xd9a27a),SUN_DAY=new THREE.Color(0xffffff),SUN_DUSK=new THREE.Color(0xffb070),SUN_NIGHT=new THREE.Color(0x9db4e6),HEMI_DAY=new THREE.Color(0xe6eeff),HEMI_NIGHT=new THREE.Color(0x7088b8);
+// halos des lampadaires (un seul appel de rendu) et lueur du gyrophare sur la neige
+const lampHalo=(function(){const n=lampHeads.length,a=new Float32Array(n*3);lampHeads.forEach((h,i)=>{a[i*3]=h.position.x;a[i*3+1]=h.position.y;a[i*3+2]=h.position.z;});
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));
+ const pts=new THREE.Points(g,new THREE.PointsMaterial({size:8,map:TEX_GLOW,color:0xffd9a0,blending:THREE.AdditiveBlending,transparent:true,opacity:0,depthWrite:false}));pts.visible=false;world.add(pts);return pts;})();
+const beaconL=new THREE.PointLight(0xff9a1a,0,34,1.5);scene.add(beaconL);
+function updateDaylight(dt,t,m,o,w){
+ const k=Math.min(1,dt*0.6);
+ night=sstep(0.56,0.7,tod)-sstep(0.9,0.99,tod);
+ const dusk=4*night*(1-night),sunW=clamp((w.hemi-0.55)/0.4,0.15,1); // sunW : soleil voilé par le mauvais temps
+ gloomS+=(clamp(Math.max(night,(0.95-w.hemi)*1.6),0,1)-gloomS)*k;
+ skyTarget.setHex(w.sky).lerp(DUSK_SKY,dusk*0.3*sunW).lerp(NIGHT_SKY,night*0.82);
+ scene.background.lerp(skyTarget,k);scene.fog.color.copy(scene.background);
+ scene.fog.near+=(w.near-scene.fog.near)*k;scene.fog.far+=(w.far-scene.fog.far)*k;
+ hemi.intensity+=((w.hemi+(1-sunW)*0.22)*(1-0.45*night)-hemi.intensity)*k;hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT,night);
+ sun.intensity+=((0.7*sunW*(1-night)+0.14*(0.4+0.6*sunW)*night)*(1-0.3*dusk)-sun.intensity)*k;sun.color.copy(SUN_DAY).lerp(SUN_DUSK,dusk*0.8).lerp(SUN_NIGHT,night);
+ sun.position.set(player.x+40+35*dusk,90-48*dusk,player.z+25);sun.target.position.set(player.x,0,player.z);
+ // fenêtres, lampadaires, phares, feux
+ WIN_LIT.emissiveIntensity=0.4+0.8*gloomS;WIN.emissiveIntensity=0.3+0.7*gloomS;
+ if(lampsOn?gloomS<0.28:gloomS>0.4){lampsOn=!lampsOn;for(const h of lampHeads)h.material.color.setHex(lampsOn?0xffe1a0:0x8f9296);}
+ const ho=clamp((gloomS-0.28)*3,0,1)*0.8;lampHalo.material.opacity=ho;lampHalo.visible=ho>0.01;
+ const fs=Math.sin(player.h),fc=Math.cos(player.h),S2=m.size;
+ headL.position.set(player.x+fs*o.frontZ*S2*0.7,2.2*S2,player.z+fc*o.frontZ*S2*0.7);headL.target.position.set(player.x+fs*28,0,player.z+fc*28);
+ headL.intensity=0.45+Math.max((0.95-w.hemi)*3,night*1.5);
+ const on=Math.sin(t*9)>0;o.beaconMat.color.setHex(on?0xffa21a:0x7a3a00);if(o.glowMat)o.glowMat.opacity=on?0.95:0.12;
+ beaconL.position.set(player.x,(o.topY||3)+0.5,player.z);beaconL.intensity=Math.max(0,Math.sin(t*9))*(0.25+1.1*gloomS);
+ GLOW_R.opacity=braking?1:0.45;TAILM.color.setHex(braking?0xff3a3a:0xa81a1a);
+ snow.material.color.setScalar(1-0.3*night);chimSmoke.material.opacity=0.32*(1-0.45*night);}
 function nextWeather(){let tot=0;WEATHERS.forEach((w,i)=>{if(i!==wIdx)tot+=w.w;});let r=Math.random()*tot;for(let i=0;i<WEATHERS.length;i++){if(i===wIdx)continue;r-=WEATHERS[i].w;if(r<=0)return i;}return 1;}
 
 /* ---------- Interface ---------- */
@@ -1589,23 +1648,44 @@ const camPos=new THREE.Vector3(player.x,8,player.z-12);
 let lastMoney='',lastIps='';
 function plow(m,o){
  const s=Math.sin(player.h),c=Math.cos(player.h),fz=o.frontZ*m.size,hw=m.width/2;
- const nS=Math.max(2,Math.ceil(m.width/0.8));let got=0,pay=0;
+ const nS=Math.max(2,Math.ceil(m.width/0.8));let got=0,pay=0,bare=0,tot=0;
  if(player.v>0.25){
   for(const a of[fz,fz-0.9,fz-1.8]){for(let k=0;k<=nS;k++){const lx=-hw+k*m.width/nS;const wx=player.x+lx*c+a*s,wz=player.z-lx*s+a*c;const idx=idxAt(wx,wz);
-   if(idx<0)continue;clearT[idx]=saltTime();if(depth[idx]>0.02){got+=depth[idx];if(noPay[idx])noPay[idx]=0;else pay+=depth[idx];pushBerm(idx,depth[idx]);depth[idx]=0;writeCell(idx);snowDirty=true;}
+   if(idx<0)continue;if(a===fz){tot++;if(depth[idx]<=0.02)bare++;}clearT[idx]=saltTime();if(depth[idx]>0.02){got+=depth[idx];if(noPay[idx])noPay[idx]=0;else pay+=depth[idx];pushBerm(idx,depth[idx]);depth[idx]=0;writeCell(idx);snowDirty=true;}
    if(mission&&mission.set.has(idx))mission.done.add(idx);}}
  }
  let ad=0,an=0;const a2=fz+1.4;for(let k=0;k<=nS;k+=2){const lx=-hw+k*m.width/nS;const idx=idxAt(player.x+lx*c+a2*s,player.z-lx*s+a2*c);if(idx>=0){ad+=depth[idx];an++;}}
- return {got,pay,ahead:an?ad/an:0};
+ return {got,pay,ahead:an?ad/an:0,bare:tot?bare/tot:0};
 }
+/* poudreuse soulevée par les roues et les chenilles quand elles roulent dans la neige ou que la machine chasse */
+function kickSnow(dt,m,o){const av=Math.abs(player.v);if(av<2.5)return;
+ const s=Math.sin(player.h),c=Math.cos(player.h),S=m.size,dir=player.v>0?1:-1,slide=slipAmt>0.07;
+ for(const ct of o.contacts){if(Math.random()>dt*(slide?30:16))continue;
+  const lx=ct.x*S,lz=ct.z*S,x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c,h=surfH(x,z);
+  if(h<0.05&&!slide)continue;
+  const k=1+Math.random()*2+av*0.12,jw=ct.w*S;
+  spawn(x+(Math.random()-0.5)*jw,Math.max(0.05,h)+0.42,z+(Math.random()-0.5)*jw,-s*dir*k+(Math.random()-0.5)*2,1.5+Math.random()*2+av*0.08,-c*dir*k+(Math.random()-0.5)*2);}}
+/* suspension : tangage à l'accélération et au freinage, roulis en virage, cahots sur la neige, vibration du moteur au ralenti */
+function updateBody(dt,t,m,o){
+ const soft=(m.kind==='tracks'||m.kind==='mammoth'?0.55:1)*(RM?0.3:1),e=Math.max(dt,0.004);
+ const aL=clamp((player.v-lastV)/e,-40,40);lastV=player.v;
+ let yr=player.h-lastH;yr=Math.atan2(Math.sin(yr),Math.cos(yr))/e;lastH=player.h;
+ const tp=clamp(-aL*0.0028,-0.06,0.06)*soft,trl=clamp(player.v*yr*0.0022,-0.07,0.07)*soft;
+ bodyPV+=((tp-bodyP)*60-bodyPV*9)*dt;bodyP+=bodyPV*dt;
+ bodyRV+=((trl-bodyR)*50-bodyRV*8)*dt;bodyR+=bodyRV*dt;
+ const av=Math.abs(player.v);bodyD+=av*dt;
+ const rough=clamp(surfH(player.x,player.z)*3,0.12,1)*Math.min(1,av/5)*soft;
+ const idle=(1-Math.min(1,av/4))*0.004/m.size*(paused?0:1);
+ o.g.position.set(player.x,Math.sin(t*41)*idle+Math.abs(Math.sin(bodyD*1.1))*0.02*rough,player.z);
+ o.g.rotation.set(bodyP+Math.sin(bodyD*1.9)*0.007*rough,player.h,bodyR+Math.sin(bodyD*1.3+1)*0.009*rough);}
 function emitSpray(m,o,got){
  const n=Math.min(26,Math.ceil(got*9));if(n<=0)return;
  const s=Math.sin(player.h),c=Math.cos(player.h),S=m.size,sp=o.spray;
- const fx=s,fzv=c,rx=c,rz=-s;
+ const fx=s,fzv=c,rx=c,rz=-s,vk=0.5+0.75*clamp(player.v/m.speed,0,1); // la gerbe porte plus loin à vive allure
  for(let q=0;q<n;q++){
   if(sp.type==='side'){const sd=sp.sides[q%sp.sides.length];const lx=sd*(m.width/2),lz=o.frontZ*S-0.6*S;
-   const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(4+Math.random()*5)*Math.sqrt(S);
-   spawn(x,0.6*S,z,rx*sd*k+fx*player.v*0.4,3+Math.random()*4*S,rz*sd*k+fzv*player.v*0.4);}
+   const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(4+Math.random()*5)*Math.sqrt(S)*vk;
+   spawn(x,0.6*S,z,rx*sd*k+fx*player.v*0.4,(3+Math.random()*4*S)*(0.6+0.4*vk),rz*sd*k+fzv*player.v*0.4);}
   else if(sp.type==='chute'){const lx=sp.x*S,lz=sp.z*S;const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=(6+Math.random()*5)*Math.sqrt(S);
    spawn(x,sp.y*S,z,rx*k+(Math.random()-0.5)*2,7+Math.random()*5,rz*k+(Math.random()-0.5)*2);}
   else {const lz=o.frontZ*S+1,lx=(Math.random()-0.5)*m.width;const x=player.x+lx*c+lz*s,z=player.z-lx*s+lz*c;const k=10+Math.random()*12;
@@ -1625,25 +1705,48 @@ function update(dt,t){
   const sy=Math.abs(pa.ly)>0.35?-pa.ly:0;
   input=clamp(input+pa.rt-pa.lt+sy,-1,1);steer=clamp(steer-pa.lx,-1,1);
   if(pa.ry)zoom=clamp(zoom*(1+pa.ry*dt*1.4),0.55,2.2);}
- steerCur=steer;
+ steerCur+=(steer-steerCur)*Math.min(1,dt*10); // le volant ne saute pas d'une butée à l'autre
+ // inertie selon le gabarit, adhérence selon la neige sous les roues et la neige qui tombe ; les chenilles accrochent bien mieux que les pneus
+ const tracked=m.kind==='tracks'||m.kind==='mammoth',massK=1+0.4*(m.size-0.75)/1.1;
+ const ku=idxAt(player.x,player.z);
+ let slick=clamp(Math.max((ku>=0?depth[ku]:0)*1.4,w.snow*0.6),0,0.85);if(tracked)slick*=0.35;
+ const spF=clamp(Math.abs(player.v)/m.speed,0,1);
  const maxV=m.speed*player.drag;
- if(input>0.05)player.v+=m.speed*1.3*dt*input;else if(input<-0.05)player.v+=m.speed*1.6*dt*input;else{player.v*=Math.max(0,1-2.5*dt);if(Math.abs(player.v)<0.05)player.v=0;}
+ const brk=(input>0.05&&player.v<-0.3)||(input<-0.05&&player.v>0.3);
+ if(brk)player.v+=m.speed*2.1*(1-0.35*slick)*dt*input; // freinage franc, plus long sur neige
+ else if(input>0.05)player.v+=m.speed*1.3/massK*(1.2-0.45*spF)*(1-0.3*slick)*dt*input; // le couple s'essouffle à haut régime, les roues patinent un peu
+ else if(input<-0.05)player.v+=m.speed*1.6/massK*dt*input;
+ else{player.v*=Math.max(0,1-2.5/massK*dt);if(Math.abs(player.v)<0.05)player.v=0;}
  if(player.v>maxV)player.v=Math.max(maxV,player.v-m.speed*3*dt);
  player.v=Math.max(player.v,-m.speed*0.45);
- const sk=clamp(player.v/(m.speed*0.35),-1,1);
- const nh=player.h+steer*m.turn*dt*sk;
+ braking=brk||player.v<-0.3;
+ engLoad+=(clamp((Math.abs(input)>0.05&&!brk?Math.abs(input):0)*(0.45+(1-player.drag)*1.6+(1-spF)*0.35),0,1)-engLoad)*Math.min(1,dt*5);
+ let sk=clamp(player.v/(m.speed*0.35),-1,1);
+ if(tracked&&Math.abs(sk)<0.4)sk=player.v<-0.3?-0.4:0.4; // les chenilles pivotent sur place
+ const nh=player.h+steerCur*m.turn*dt*sk*(1-0.22*spF*spF); // braquage moins vif à pleine vitesse
  if(okMove(player.x,player.z,nh))player.h=nh;
- const nx=player.x+Math.sin(player.h)*player.v*dt,nz=player.z+Math.cos(player.h)*player.v*dt;
+ // la trajectoire (mh) suit le cap (h) avec un retard qui dépend de l'adhérence : l'arrière chasse légèrement sur neige et verglas
+ let dm=player.h-player.mh;dm=Math.atan2(Math.sin(dm),Math.cos(dm));
+ dm=clamp(dm*Math.max(0,1-dt*(18*(1-slick)+5*slick)*(1.5-0.7*spF)),-0.45,0.45);player.mh=player.h-dm;
+ slipAmt=Math.abs(dm)*spF;
+ if(Math.abs(dm)>0.02)player.v*=1-Math.abs(dm)*dt*1.2;
+ const nx=player.x+Math.sin(player.mh)*player.v*dt,nz=player.z+Math.cos(player.mh)*player.v*dt;
  if(okMove(nx,nz,player.h)){player.x=nx;player.z=nz;}
  else if(okMove(nx,player.z,player.h)){player.x=nx;player.v*=0.92;}
  else if(okMove(player.x,nz,player.h)){player.z=nz;player.v*=0.92;}
- else player.v*=-0.2;
+ else{player.v*=-0.2;player.mh=player.h;}
+ if(player.v<-0.4&&m.size>=0.95){beepT-=dt;if(beepT<=0){beepT=0.7;sfxBeep();}}else beepT=0; // bip de recul des gros engins
  // déneigement
  const r=plow(m,o);
- const dragT=1/(1+r.ahead*m.width/(m.power*3));player.drag+=(dragT-player.drag)*Math.min(1,dt*4);
+ // résistance : neige à venir + bourrelet déjà poussé devant la lame
+ const dragT=1/(1+(r.ahead+pileLvl*0.15)*m.width/(m.power*3));player.drag+=(dragT-player.drag)*Math.min(1,dt*4);
  if(r.got>0){const gain=r.pay*2*m.pay*w.bonus;state.money+=gain;state.earned+=gain;ipsAcc+=gain;emitSpray(m,o,r.got);emitChunks(m,o,r.got);}
  if(m.kind==='jet'&&player.v>0.5&&Math.random()<0.5)emitSpray(m,o,0.4);
  plowLvl+=(Math.min(1,Math.sqrt(r.got/Math.max(dt,0.001))/5)-plowLvl)*Math.min(1,dt*8);
+ scrLvl+=((PILE_K[m.kind]&&PILE_K[m.kind][0]&&m.kind!=='mini'&&m.kind!=='drum'?r.bare*spF:0)-scrLvl)*Math.min(1,dt*6);
+ kickSnow(dt,m,o);
+ tod=(tod+dt/DAY_LEN)%1;
+ {const isN=tod>0.63&&tod<0.94;if(isN!==wasNight){wasNight=isN;toast(isN?'🌙 La nuit tombe sur Valneige. Phares et gyrophare allumés.':'🌅 Le jour se lève sur Valneige.','',3200);}}
  updateProps(dt,m,o);updatePools(dt);if(comboT>0){comboT-=dt;if(comboT<=0)comboN=0;}
  ipsT+=dt;if(ipsT>=1){ips=ips*0.55+ipsAcc/ipsT*0.45;ipsAcc=0;ipsT=0;}
  // animations machine
@@ -1663,24 +1766,24 @@ function update(dt,t){
 }
 function visuals(dt,t){
  const m=MACHINES[state.eq],o=player.obj,w=W();
- o.g.position.set(player.x,0,player.z);o.g.rotation.y=player.h;
- o.beaconMat.color.setHex(Math.sin(t*9)>0?0xffa21a:0x7a3a00);if(o.glowMat)o.glowMat.opacity=Math.sin(t*9)>0?0.95:0.12;
- {const fs=Math.sin(player.h),fc=Math.cos(player.h),S2=m.size;headL.position.set(player.x+fs*o.frontZ*S2*0.7,2.2*S2,player.z+fc*o.frontZ*S2*0.7);headL.target.position.set(player.x+fs*28,0,player.z+fc*28);headL.intensity=0.45+(0.95-w.hemi)*3;}
+ updateWind(dt,t);updateBody(dt,t,m,o);
  if(snowDirty){refreshSnow();snowDirty=false;}
- // ciel
- skyTarget.setHex(w.sky);const k=Math.min(1,dt*0.6);
- scene.background.lerp(skyTarget,k);scene.fog.color.copy(scene.background);
- scene.fog.near+=(w.near-scene.fog.near)*k;scene.fog.far+=(w.far-scene.fog.far)*k;
- hemi.intensity+=(w.hemi-hemi.intensity)*k;
- // flocons
- const wind=w.wind;
- for(let i=0;i<SN;i++){const o3=i*3;snPos[o3+1]-=(3+(i%7)*0.4)*dt;snPos[o3]+=wind*dt*(0.7+(i%5)*0.1)+Math.sin(t*1.7+i)*0.5*dt;snPos[o3+2]+=Math.cos(t*1.3+i*0.7)*0.4*dt;
-  if(snPos[o3+1]<0)snPos[o3+1]+=45;if(snPos[o3]>70)snPos[o3]-=140;else if(snPos[o3]<-70)snPos[o3]+=140;}
+ // ciel, soleil, nuit, phares, gyrophare
+ updateDaylight(dt,t,m,o,w);
+ // flocons : emportés par le vent et ses rafales, ils défilent quand la machine roule ; par gros vent, une poudrerie court au ras du sol
+ const mvx=clamp(player.x-snowPX,-6,6),mvz=clamp(player.z-snowPZ,-6,6),low=windSm>5;snowPX=player.x;snowPZ=player.z;
+ for(let i=0;i<SN;i++){const o3=i*3;let wk=0.7+(i%5)*0.1;
+  if(low&&i%6===0&&snPos[o3+1]<2.2){wk=1.7;snPos[o3+1]+=Math.sin(t*2.3+i)*0.5*dt;if(snPos[o3+1]<0.15)snPos[o3+1]=0.15;}
+  else snPos[o3+1]-=(3+(i%7)*0.4)*dt;
+  snPos[o3]+=windX*dt*wk+Math.sin(t*1.7+i)*0.5*dt-mvx;snPos[o3+2]+=windZ*dt*wk+Math.cos(t*1.3+i*0.7)*0.4*dt-mvz;
+  if(snPos[o3+1]<0)snPos[o3+1]+=45;if(snPos[o3]>70)snPos[o3]-=140;else if(snPos[o3]<-70)snPos[o3]+=140;
+  if(snPos[o3+2]>70)snPos[o3+2]-=140;else if(snPos[o3+2]<-70)snPos[o3+2]+=140;}
  snGeo.attributes.position.needsUpdate=true;
- snGeo.setDrawRange(0,Math.floor(SN*w.snow));
+ snowAmt+=(w.snow-snowAmt)*Math.min(1,dt*0.5);
+ snGeo.setDrawRange(0,Math.floor(SN*snowAmt));
  snow.position.set(player.x,0,player.z);
  // projections
- for(let i=0;i<SPN;i++){if(spLife[i]<=0)continue;const o3=i*3;spLife[i]-=dt;spVel[o3+1]-=14*dt;spPos[o3]+=spVel[o3]*dt;spPos[o3+1]+=spVel[o3+1]*dt;spPos[o3+2]+=spVel[o3+2]*dt;
+ for(let i=0;i<SPN;i++){if(spLife[i]<=0)continue;const o3=i*3;spLife[i]-=dt;spVel[o3+1]-=14*dt;spVel[o3]+=windX*0.5*dt;spVel[o3+2]+=windZ*0.5*dt;spPos[o3]+=spVel[o3]*dt;spPos[o3+1]+=spVel[o3+1]*dt;spPos[o3+2]+=spVel[o3+2]*dt;
   if(spPos[o3+1]<0.3||spLife[i]<=0){spLife[i]=0;spPos[o3+1]=-50;}}
  spGeo.attributes.position.needsUpdate=true;
  // mission marqueur
@@ -1695,7 +1798,6 @@ function visuals(dt,t){
  else{camera.position.copy(camPos);applyShake(dt,S);
  camera.lookAt(player.x+Math.sin(camH)*4,1.2*S,player.z+Math.cos(camH)*4);}
  updateCockpit(dt,m);
- sun.position.set(player.x+40,90,player.z+25);sun.target.position.set(player.x,0,player.z);
  // HUD
  const ms=fmt(state.money);if(ms!==lastMoney){$('money').textContent=ms;lastMoney=ms;}
  const is='+'+fmt(ips)+' par seconde';if(is!==lastIps){$('ips').textContent=is;lastIps=is;}
@@ -1708,7 +1810,7 @@ window.addEventListener('resize',resize);resize();
 initProps();equip(state.eq);
 setWeather(1,true);applyMuteUI();
 let last=performance.now();
-function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;const t=now/1000;
+function frame(now){requestAnimationFrame(frame);const dt=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const t=now/1000;
  if(!paused)update(dt,t);visuals(dt,t);renderer.render(scene,camera);}
 requestAnimationFrame(frame);
 })();

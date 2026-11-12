@@ -32,3 +32,6 @@ Hébergement statique, `index.html` à la racine, `vendor/` à côté. Vérifier
 - `updateProps`, `smash` : objets à casser et combos.
 - `gzEnvoi`, `gzPanneau` : classement gamzu.fr (score = `state.earned`).
 - `cabCam`, `updateCockpit` : vue cabine.
+- Bloc « conduite » de `update` : inertie (`massK`), adhérence (`slick`, cap `player.h` et trajectoire `player.mh`), `updateBody` (tangage, roulis), `kickSnow` (poudreuse des roues).
+- `updateWind` (`windX`, `windZ`, `gust`), `updateDaylight` et `DAY_LEN` : vent, cycle jour / nuit, lampadaires, gyrophare (`beaconL`).
+- `audioUpdate`, `sfxBeep` : moteur selon régime et charge (`engLoad`), vent, raclement de lame (`scrLvl`), bip de recul.
